@@ -1,9 +1,8 @@
-import mongoose, { Types } from 'mongoose';
 import { Request, Response } from 'express';
 import Notification from '../models/Notification.js';
 
 export interface CreateNotificationParams {
-  recipient: Types.ObjectId;
+  recipient: import('mongoose').Types.ObjectId;
   type: 'post_resolved' | 'comment_replied' | 'faq_match_found' | 'mention' | 'expert_request';
   title: string;
   message: string;
@@ -12,29 +11,32 @@ export interface CreateNotificationParams {
 }
 
 // Internal helper — creates a notification. Does NOT send a response.
-// Used by other controllers (e.g. communityController) to trigger notifications.
 export const createNotification = async (params: CreateNotificationParams): Promise<void> => {
   try {
-    await Notification.create({
-      recipient: params.recipient,
-      type: params.type,
-      title: params.title,
-      message: params.message,
-      link: params.link,
-    });
+    await Notification.create(params);
   } catch {
     // Non-critical — swallow errors so notification failures don't break the parent operation
   }
 };
 
+// ─── Auth guard helper ─────────────────────────────────────────────────────────
+function requireUser(req: Request, res: Response): import('mongoose').Types.ObjectId | null {
+  if (!req.user) {
+    res.status(401).json({ message: 'Not authorized' });
+    return null;
+  }
+  return req.user._id as import('mongoose').Types.ObjectId;
+}
+
 // GET /api/notifications — Get all notifications for the authenticated user
 export const getNotifications = async (req: Request, res: Response): Promise<void> => {
+  const userId = requireUser(req, res);
+  if (!userId) return;
   try {
-    const notifications = await Notification.find({ recipient: req.user!._id })
+    const notifications = await Notification.find({ recipient: userId })
       .sort({ createdAt: -1 })
       .limit(50)
       .lean();
-
     res.json({ notifications });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: (error as Error).message });
@@ -43,11 +45,10 @@ export const getNotifications = async (req: Request, res: Response): Promise<voi
 
 // GET /api/notifications/unread-count — Get unread notification count
 export const getUnreadCount = async (req: Request, res: Response): Promise<void> => {
+  const userId = requireUser(req, res);
+  if (!userId) return;
   try {
-    const count = await Notification.countDocuments({
-      recipient: req.user!._id,
-      read: false,
-    });
+    const count = await Notification.countDocuments({ recipient: userId, read: false });
     res.json({ count });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: (error as Error).message });
@@ -56,18 +57,18 @@ export const getUnreadCount = async (req: Request, res: Response): Promise<void>
 
 // PATCH /api/notifications/:id/read — Mark a single notification as read
 export const markAsRead = async (req: Request, res: Response): Promise<void> => {
+  const userId = requireUser(req, res);
+  if (!userId) return;
   try {
     const notification = await Notification.findOneAndUpdate(
-      { _id: req.params.id, recipient: req.user!._id },
+      { _id: req.params.id, recipient: userId },
       { read: true },
       { new: true }
     );
-
     if (!notification) {
       res.status(404).json({ message: 'Notification not found.' });
       return;
     }
-
     res.json({ notification });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: (error as Error).message });
@@ -76,11 +77,10 @@ export const markAsRead = async (req: Request, res: Response): Promise<void> => 
 
 // PATCH /api/notifications/read-all — Mark all notifications as read for the user
 export const markAllAsRead = async (req: Request, res: Response): Promise<void> => {
+  const userId = requireUser(req, res);
+  if (!userId) return;
   try {
-    await Notification.updateMany(
-      { recipient: req.user!._id, read: false },
-      { read: true }
-    );
+    await Notification.updateMany({ recipient: userId, read: false }, { read: true });
     res.json({ message: 'All notifications marked as read.' });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: (error as Error).message });
@@ -89,18 +89,51 @@ export const markAllAsRead = async (req: Request, res: Response): Promise<void> 
 
 // DELETE /api/notifications/:id — Delete a notification
 export const deleteNotification = async (req: Request, res: Response): Promise<void> => {
+  const userId = requireUser(req, res);
+  if (!userId) return;
   try {
-    const notification = await Notification.findOneAndDelete({
-      _id: req.params.id,
-      recipient: req.user!._id,
-    });
-
+    const notification = await Notification.findOneAndDelete({ _id: req.params.id, recipient: userId });
     if (!notification) {
       res.status(404).json({ message: 'Notification not found.' });
       return;
     }
-
     res.json({ message: 'Notification deleted.' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: (error as Error).message });
+  }
+};
+
+// ─── Notification Settings ─────────────────────────────────────────────────────
+import NotificationSettings from '../models/NotificationSettings.js';
+
+export const getSettings = async (req: Request, res: Response): Promise<void> => {
+  const userId = requireUser(req, res);
+  if (!userId) return;
+  try {
+    let settings = await NotificationSettings.findOne({ user: userId });
+    if (!settings) {
+      settings = await NotificationSettings.create({ user: userId });
+    }
+    res.json({ settings });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: (error as Error).message });
+  }
+};
+
+export const updateSettings = async (req: Request, res: Response): Promise<void> => {
+  const userId = requireUser(req, res);
+  if (!userId) return;
+  try {
+    const { newFaq, pendingApproval, newUser, systemAlerts, weeklyReport } = req.body as {
+      newFaq?: boolean; pendingApproval?: boolean; newUser?: boolean;
+      systemAlerts?: boolean; weeklyReport?: boolean;
+    };
+    const settings = await NotificationSettings.findOneAndUpdate(
+      { user: userId },
+      { newFaq, pendingApproval, newUser, systemAlerts, weeklyReport },
+      { new: true, upsert: true }
+    );
+    res.json({ settings });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: (error as Error).message });
   }

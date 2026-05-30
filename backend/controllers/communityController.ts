@@ -135,6 +135,7 @@ export const getAnswersList = async (req: Request, res: Response): Promise<void>
 
 // POST /api/community — Create a new post (protected)
 export const createPost = async (req: Request, res: Response): Promise<void> => {
+  if (!req.user) { res.status(401).json({ message: 'Not authorized' }); return; }
   try {
     const { title, body } = req.body as { title?: string; body?: string };
 
@@ -188,6 +189,7 @@ export const createPost = async (req: Request, res: Response): Promise<void> => 
 
 // POST /api/community/:id/upvote — Toggle upvote
 export const toggleUpvote = async (req: Request, res: Response): Promise<void> => {
+  if (!req.user) { res.status(401).json({ message: "Not authorized" }); return; }
   try {
     const post = await CommunityPost.findById(req.params.id);
     if (!post) {
@@ -217,6 +219,7 @@ export const toggleUpvote = async (req: Request, res: Response): Promise<void> =
 // POST /api/community/:id/comments — Add a comment or reply to another comment
 // Query param: ?parentId=<commentId> to reply to a specific comment
 export const addComment = async (req: Request, res: Response): Promise<void> => {
+  if (!req.user) { res.status(401).json({ message: "Not authorized" }); return; }
   try {
     const { body } = req.body as { body?: string };
     const { parentId } = req.query as { parentId?: string };
@@ -322,6 +325,7 @@ export const getSolvedPosts = async (req: Request, res: Response): Promise<void>
 // POST /api/community/:id/resolve — Mark a community post as resolved (admin/mod only)
 // When resolved, the post author is notified via the notification system
 export const resolvePost = async (req: Request, res: Response): Promise<void> => {
+  if (!req.user) { res.status(401).json({ message: "Not authorized" }); return; }
   try {
     const { answer } = req.body as { answer?: string };
 
@@ -407,6 +411,7 @@ export const requestExpertHelp = async (req: Request, res: Response): Promise<vo
 
 // DELETE /api/community/:id — Delete a community post (Admin/Moderator only)
 export const deletePost = async (req: Request, res: Response): Promise<void> => {
+  if (!req.user) { res.status(401).json({ message: "Not authorized" }); return; }
   try {
     const post = await CommunityPost.findByIdAndDelete(req.params.id);
     if (!post) {
@@ -425,6 +430,7 @@ export const deletePost = async (req: Request, res: Response): Promise<void> => 
 
 // POST /api/community/:id/comments/:commentId/upvote — Toggle upvote on a comment
 export const toggleCommentUpvote = async (req: Request, res: Response): Promise<void> => {
+  if (!req.user) { res.status(401).json({ message: "Not authorized" }); return; }
   try {
     const post = await CommunityPost.findById(req.params.id);
     if (!post) {
@@ -469,6 +475,7 @@ export const toggleCommentUpvote = async (req: Request, res: Response): Promise<
 // POST /api/community/:id/comments/:commentId/downvote — Toggle downvote on a comment
 // When net score reaches -5, the comment is auto-deleted and { deleted: true } is returned
 export const toggleCommentDownvote = async (req: Request, res: Response): Promise<void> => {
+  if (!req.user) { res.status(401).json({ message: "Not authorized" }); return; }
   try {
     const post = await CommunityPost.findById(req.params.id);
     if (!post) {
@@ -525,6 +532,7 @@ export const toggleCommentDownvote = async (req: Request, res: Response): Promis
 
 // PATCH /api/community/:id/comments/:commentId/verify — Mark a comment as verified top answer
 export const verifyComment = async (req: Request, res: Response): Promise<void> => {
+  if (!req.user) { res.status(401).json({ message: "Not authorized" }); return; }
   try {
     const post = await CommunityPost.findById(req.params.id);
     if (!post) {
@@ -552,6 +560,7 @@ export const verifyComment = async (req: Request, res: Response): Promise<void> 
 
 // POST /api/community/:id/report — Report a community post
 export const reportPost = async (req: Request<{ id: string }, {}, { reason: string }>, res: Response): Promise<void> => {
+  if (!req.user) { res.status(401).json({ message: 'Not authorized' }); return; }
   try {
     const { reason } = req.body;
     if (!reason || !reason.trim()) {
@@ -750,6 +759,7 @@ export async function checkDuplicate(
 
 // POST /api/community/check-duplicate
 export const checkDuplicateController = async (req: Request, res: Response): Promise<void> => {
+  if (!req.user) { res.status(401).json({ message: "Not authorized" }); return; }
   try {
     const { query } = req.body as { query?: string };
     if (!query?.trim()) {

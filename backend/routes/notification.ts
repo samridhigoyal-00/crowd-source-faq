@@ -6,8 +6,9 @@ import {
   markAsRead,
   markAllAsRead,
   deleteNotification,
+  getSettings,
+  updateSettings,
 } from '../controllers/notificationController.js';
-import { getSettings, updateSettings } from '../controllers/notificationSettingsController.js';
 
 const router = Router();
 

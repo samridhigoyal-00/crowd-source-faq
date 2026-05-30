@@ -172,6 +172,10 @@ export const getSearchInsights = async (_req: Request, res: Response): Promise<v
 };
 
 // GET /api/admin/users
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export const getUsers = async (req: Request, res: Response): Promise<void> => {
   try {
     const page = parseInt(req.query.page as string) || 1;
@@ -182,8 +186,8 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
     const query = search
       ? {
           $or: [
-            { name: { $regex: search, $options: 'i' } },
-            { email: { $regex: search, $options: 'i' } },
+            { name: { $regex: escapeRegex(search), $options: 'i' } },
+            { email: { $regex: escapeRegex(search), $options: 'i' } },
           ],
         }
       : {};
@@ -215,8 +219,8 @@ export const getAdminFAQs = async (req: Request, res: Response): Promise<void> =
     if (category) query.category = category;
     if (search)
       query.$or = [
-        { question: { $regex: search, $options: 'i' } },
-        { answer: { $regex: search, $options: 'i' } },
+        { question: { $regex: escapeRegex(search), $options: 'i' } },
+        { answer: { $regex: escapeRegex(search), $options: 'i' } },
       ];
 
     const [faqs, total] = await Promise.all([
@@ -241,11 +245,9 @@ export const getAdminFAQs = async (req: Request, res: Response): Promise<void> =
 export const approveFAQ = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.body as { id?: string };
+    if (!id) { res.status(400).json({ message: 'id is required' }); return; }
     const faq = await FAQ.findByIdAndUpdate(id, { status: 'approved' }, { new: true }).select('-embedding');
-    if (!faq) {
-      res.status(404).json({ message: 'FAQ not found.' });
-      return;
-    }
+    if (!faq) { res.status(404).json({ message: 'FAQ not found.' }); return; }
     await logAction(req.user!._id.toString(), 'approve_faq', faq._id.toString(), 'faq', faq.question);
     res.json({ message: 'FAQ approved.', faq });
   } catch (error) {
@@ -257,11 +259,9 @@ export const approveFAQ = async (req: Request, res: Response): Promise<void> => 
 export const rejectFAQ = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.body as { id?: string };
+    if (!id) { res.status(400).json({ message: 'id is required' }); return; }
     const faq = await FAQ.findByIdAndUpdate(id, { status: 'rejected' }, { new: true }).select('-embedding');
-    if (!faq) {
-      res.status(404).json({ message: 'FAQ not found.' });
-      return;
-    }
+    if (!faq) { res.status(404).json({ message: 'FAQ not found.' }); return; }
     await logAction(req.user!._id.toString(), 'reject_faq', faq._id.toString(), 'faq', faq.question);
     res.json({ message: 'FAQ rejected.', faq });
   } catch (error) {

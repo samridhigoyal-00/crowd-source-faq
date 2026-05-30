@@ -107,7 +107,11 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
 };
 
 // GET /api/auth/users (Admin only)
-export const getAllUsers = async (_req: Request, res: Response): Promise<void> => {
+export const getAllUsers = async (req: Request, res: Response): Promise<void> => {
+  if (!req.user || (req.user as any).role !== 'admin') {
+    res.status(403).json({ message: 'Admin access required' });
+    return;
+  }
   try {
     const users = await User.find({}).sort({ createdAt: -1 });
     res.json({ users });
@@ -205,6 +209,10 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
 
 // PATCH /api/auth/users/:id/role (Admin only)
 export const updateUserRole = async (req: Request, res: Response): Promise<void> => {
+  if (!req.user || (req.user as any).role !== 'admin') {
+    res.status(403).json({ message: 'Admin access required' });
+    return;
+  }
   try {
     const { role } = req.body as { role?: string };
     const validRoles: UserRole[] = ['user', 'moderator', 'admin', 'ai_moderator'];
@@ -231,6 +239,10 @@ export const updateUserRole = async (req: Request, res: Response): Promise<void>
 
 // DELETE /api/auth/users/:id (Admin only)
 export const deleteUser = async (req: Request, res: Response): Promise<void> => {
+  if (!req.user || (req.user as any).role !== 'admin') {
+    res.status(403).json({ message: 'Admin access required' });
+    return;
+  }
   try {
     const target = await User.findById(req.params.id);
     if (!target) {

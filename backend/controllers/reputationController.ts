@@ -6,6 +6,10 @@ import Badge from '../models/Badge.js';
 // ─── Award / Deduct Points ───────────────────────────────────────────────
 
 export const awardPoints = async (req: Request, res: Response): Promise<void> => {
+  if (!req.user || (req.user as any).role !== 'admin') {
+    res.status(403).json({ message: 'Admin access required' });
+    return;
+  }
   try {
     const { userId, delta, reason, action, targetId, targetType } = req.body;
     if (!userId || delta === undefined || !reason) {
@@ -58,6 +62,10 @@ export const getUserReputation = async (req: Request, res: Response): Promise<vo
 // ─── Issue Badge ────────────────────────────────────────────────────────
 
 export const issueBadge = async (req: Request, res: Response): Promise<void> => {
+  if (!req.user || (req.user as any).role !== 'admin') {
+    res.status(403).json({ message: 'Admin access required' });
+    return;
+  }
   try {
     const { userId, badgeId, reason } = req.body;
     if (!userId || !badgeId) { res.status(400).json({ message: 'userId and badgeId required' }); return; }
@@ -94,6 +102,10 @@ export const issueBadge = async (req: Request, res: Response): Promise<void> => 
 // ─── Revoke Badge ────────────────────────────────────────────────────────
 
 export const revokeBadge = async (req: Request, res: Response): Promise<void> => {
+  if (!req.user || (req.user as any).role !== 'admin') {
+    res.status(403).json({ message: 'Admin access required' });
+    return;
+  }
   try {
     const { userId, badgeId } = req.body;
     if (!userId || !badgeId) { res.status(400).json({ message: 'userId and badgeId required' }); return; }
