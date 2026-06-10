@@ -4,6 +4,7 @@
 
 import React from 'react';
 import type { PublicCategory } from './types';
+import { HomeDoodles } from '../ui/PageDoodles';
 
 interface ExploreHeroProps {
   /** Name of the active batch — used as the eyebrow above the H1. */
@@ -30,7 +31,9 @@ export function ExploreHero({
       className="relative pt-8 sm:pt-12 pb-6 sm:pb-10 text-center"
       aria-label="Page header"
     >
-      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-accent/10 text-accent mb-3">
+      <HomeDoodles />
+      
+      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-accent/10 text-accent mb-3 relative z-10">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <circle cx="12" cy="12" r="9.5" />
@@ -38,14 +41,18 @@ export function ExploreHero({
           <path d="M12 17.5h.01" />
         </svg>
       </div>
-      <p className="text-[11px] uppercase tracking-[0.18em] font-semibold text-accent">
+      <p className="text-[11px] uppercase tracking-[0.18em] font-semibold text-accent relative z-10">
         {batchName}
       </p>
-      <h1 className="font-serif text-3xl sm:text-4xl text-ink leading-tight mt-1.5">
-        Frequently Asked Questions
+      <h1 className="font-serif text-[1.75rem] sm:text-4xl md:text-5xl lg:text-[3.2rem] leading-[1.15] tracking-tight text-ink mb-3 mt-1.5 relative z-10">
+        Ask. Discover. Get{' '}
+        <span className="doodle-underline font-serif" style={{ fontWeight: 700 }}>Solved.</span>
+        <svg className="inline-block ml-2 align-middle" width="24" height="18" viewBox="0 0 24 18" style={{ opacity: 0.18 }}>
+          <path d="M2 12 Q6 4 12 9 Q18 14 22 6" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+        </svg>
       </h1>
-      <p className="text-sm sm:text-base text-ink-soft mt-2 max-w-2xl mx-auto px-4">
-        Find instant answers to common questions — no sign-in required.
+      <p className="text-sm sm:text-base text-ink-soft mb-6 sm:mb-8 max-w-lg leading-relaxed mx-auto px-2 relative z-10">
+        Search your doubt or explore solved questions from the community.
       </p>
 
       {totalFaqs > 0 && (
