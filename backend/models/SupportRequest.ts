@@ -10,6 +10,28 @@ export type SupportIssueType = 'internet' | 'camera' | 'microphone' | 'device' |
 // convert-to-golden flow. New tickets still default to 'Pending' so
 // the existing admin inbox filter (status='Pending') keeps matching.
 export type SupportStatus = 'Pending' | 'In Review' | 'Resolved' | 'Rejected' | 'open' | 'closed';
+// v1.68 — schema audit note: this enum has TitleCase +
+// lowercase mixed (the v1.65 Golden extension added the
+// lowercase values; the v1.5 admin inbox had the
+// TitleCase values). The audit recommends normalizing to
+// lowercase only. KEPT AS-IS in v1.68 to avoid breaking
+// ~20 controller / script call sites that compare against
+// the TitleCase values. A follow-up commit can normalize
+// the DB values via LEGACY_STATUS_MAP and remove the
+// TitleCase variants. Tracked in issues.md schema-audit M1.
+
+// v1.68 — compatibility map for the future normalization.
+// New writes should use the lowercase form. Old DB rows
+// carry TitleCase values; the controller can normalize
+// on read using this map.
+export const LEGACY_STATUS_MAP: Record<string, SupportStatus> = {
+  Pending: 'Pending',       // already canonical
+  'In Review': 'In Review', // already canonical
+  Resolved: 'Resolved',     // already canonical
+  Rejected: 'Rejected',     // already canonical
+  open: 'open',
+  closed: 'closed',
+};
 export type SupportSenderRole = 'admin' | 'student';
 
 // Default issue-type display labels + 4-step checklists. These are

@@ -1,11 +1,17 @@
 import mongoose, { Document, Schema as MongooseSchema, Types } from 'mongoose';
 
 /**
- * AttendanceGuidance — admin-editable troubleshooting checklist per
- * issue type. One row per (issueType); the controller self-seeds from
- * the in-code defaults in SupportRequest.ts on first read.
+ * AttendanceGuidance — DEPRECATED as of v1.68. Replaced by
+ * `SupportCategory` (see models/SupportCategory.ts). Kept in
+ * the codebase for one release so existing reads don't break;
+ * no new code should write to it.
+ *
+ * The migration path: if any controllers / scripts still
+ * reference this model, redirect them to SupportCategory and
+ * delete this file on the next major version.
+ *
+ * @deprecated since v1.68 — use `SupportCategory` instead.
  */
-
 export interface IAttendanceGuidance extends Document {
   issueType: string;
   steps: string[];
