@@ -21,6 +21,7 @@
 import type { Types } from 'mongoose';
 import AdminConfig from '../models/AdminConfig.js';
 import { categorize, keyToEnvVar, parseEnvValue } from './adminCategorize.js';
+import { loadConfig } from './loader.js';
 
 export type ConfigSource = 'mongo' | 'env' | 'default';
 
@@ -92,8 +93,19 @@ export function clearAllConfigCache(): void {
 // A future iteration can plug in a real schema lookup by passing the
 // parsed config object in at startup.
 
-function getSchemaDefault(_key: string): unknown {
-  return undefined;
+function getSchemaDefault(key: string): unknown {
+  try {
+    const config = loadConfig();
+    const parts = key.split('.');
+    let current: any = config;
+    for (const part of parts) {
+      if (current === undefined || current === null) return undefined;
+      current = current[part];
+    }
+    return current;
+  } catch (err) {
+    return undefined;
+  }
 }
 
 // ── Public API ───────────────────────────────────────────────────────────────

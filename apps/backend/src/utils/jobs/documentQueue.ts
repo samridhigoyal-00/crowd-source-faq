@@ -34,6 +34,7 @@
 import { Queue, Worker, QueueEvents, type Job, type Processor, type ConnectionOptions } from 'bullmq';
 import { logger } from '../http/logger.js';
 import { processDocument } from './documentJob.js';
+import { loadConfig } from '../../config/loader.js';
 
 // ─── Connection ──────────────────────────────────────────────────────────────
 
@@ -42,12 +43,14 @@ const QUEUE_NAME = 'document-processing';
 let useLocalFallback = false;
 
 function getRedisUrl(): string {
+  const config = loadConfig();
+  const fallback = process.env.REDIS_LOCAL_TCP_URL || process.env.REDIS_TCP_URL || 'redis://127.0.0.1:6379';
   if (useLocalFallback) {
-    return 'redis://127.0.0.1:6379';
+    return fallback;
   }
-  const url = process.env.REDIS_TCP_URL;
+  const url = config.redis.tcpUrl;
   if (!url || url === '#' || url.trim() === '') {
-    return 'redis://127.0.0.1:6379';
+    return fallback;
   }
   return url;
 }

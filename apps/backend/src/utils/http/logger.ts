@@ -146,6 +146,12 @@ function formatLog(entry: LogInput): string {
   const suffix = entry.level === 'alert' ? '\n' + C.boldRed('━'.repeat(80)) : '';
   return `${prefix}${C.dim(timestamp)} ${glyph} ${lvl} ${cat} ${C.bold(entry.message)}${metaStr}${suffix}`;
 }
+let discordChannelNotifier: ((message: string, meta?: object, category?: string, level?: LogLevel) => Promise<void>) | null = null;
+
+export function setDiscordChannelNotifier(notifier: typeof discordChannelNotifier): void {
+  discordChannelNotifier = notifier;
+}
+
 function emit(entry: LogInput): void {
   const formatted = formatLog(entry);
   if (entry.level === 'error' || entry.level === 'alert') {
@@ -153,9 +159,9 @@ function emit(entry: LogInput): void {
   } else {
     console.log(formatted);
   }
-  // Forward alerts to Discord (best-effort, fire-and-forget).
-  if (entry.level === 'alert') {
-    notifyDiscord(entry.message, entry.meta, entry.category).catch(() => { /* swallow */ });
+  // Forward alerts, errors, and warnings to Discord (best-effort, fire-and-forget).
+  if (entry.level === 'alert' || entry.level === 'error' || entry.level === 'warn') {
+    notifyDiscord(entry.message, entry.meta, entry.category, entry.level).catch(() => { /* swallow */ });
   }
 }
 
@@ -293,6 +299,7 @@ interface PendingDiscordAlert {
   message: string;
   meta?: object;
   category?: string;
+  level?: LogLevel;
   attempts: number;
   nextAttemptAt: number;
 }
@@ -329,7 +336,9 @@ async function drainDiscordQueue(): Promise<void> {
     discordQueue.length = 0;
     return;
   }
-  const ok = await postDiscordEmbed(url, `[ALERT] ${item.message}`, item.meta, item.category);
+  const level = item.level ?? 'alert';
+  const tag = `[${level.toUpperCase()}]`;
+  const ok = await postDiscordEmbed(url, `${tag} ${item.message}`, item.meta, item.category, level);
   if (!ok) {
     // Re-queue with exponential backoff, but cap queue size.
     item.attempts += 1;
@@ -350,6 +359,7 @@ async function postDiscordEmbed(
   title: string,
   meta?: object,
   category?: string,
+  level: LogLevel = 'alert',
 ): Promise<boolean> {
   const fields: DiscordEmbedField[] = [];
   if (category) fields.push({ name: 'category', value: category, inline: true });
@@ -363,7 +373,7 @@ async function postDiscordEmbed(
     username: 'Yaksha Logger',
     embeds: [{
       title: title.slice(0, 240),
-      color: DISCORD_COLORS.alert,
+      color: DISCORD_COLORS[level] ?? DISCORD_COLORS.alert,
       fields,
       timestamp: new Date().toISOString(),
       footer: { text: 'Yaksha FAQ Portal' },
@@ -393,10 +403,15 @@ const DISCORD_COLORS: Record<LogLevel, number> = {
   info:  0x3498DB,
 };
 
-async function notifyDiscord(message: string, meta?: object, category?: string): Promise<void> {
+async function notifyDiscord(message: string, meta?: object, category?: string, level: LogLevel = 'alert'): Promise<void> {
+  if (discordChannelNotifier) {
+    discordChannelNotifier(message, meta, category, level).catch(() => { /* swallow */ });
+  }
+
   const url = getWebhookUrl();
-  if (!url) return;
-  const ok = await postDiscordEmbed(url, `[ALERT] ${message}`, meta, category);
+  if (!url || url.startsWith('#') || url === '###') return;
+  const tag = `[${level.toUpperCase()}]`;
+  const ok = await postDiscordEmbed(url, `${tag} ${message}`, meta, category, level);
   if (!ok) {
     // Enqueue for retry. Cap at DISCORD_QUEUE_MAX to bound memory.
     if (discordQueue.length >= DISCORD_QUEUE_MAX) {
@@ -407,6 +422,7 @@ async function notifyDiscord(message: string, meta?: object, category?: string):
       message,
       meta,
       category,
+      level,
       attempts: 0,
       nextAttemptAt: Date.now() + DISCORD_RETRY_BASE_MS,
     });

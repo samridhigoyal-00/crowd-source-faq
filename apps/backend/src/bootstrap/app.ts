@@ -8,6 +8,7 @@ import { registerMiddleware } from './middleware.js';
 import { registerRoutes } from './routes.js';
 import { getMetrics } from '../utils/http/metrics.js';
 import { logger } from '../utils/http/logger.js';
+import { internalApiKeyOrAdmin } from '../middleware/internalApiKeyOrAdmin.js';
 
 export function createApp(config: any): Express {
   // Initialize Sentry
@@ -36,7 +37,7 @@ export function createApp(config: any): Express {
   registerRoutes(app);
 
   // Mount special utility endpoints
-  app.get('/csfaq/api/health', async (req: Request, res: Response) => {
+  app.get('/csfaq/api/health', internalApiKeyOrAdmin, async (req: Request, res: Response) => {
     let dbStatus = 'disconnected';
     try {
       const conn = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';

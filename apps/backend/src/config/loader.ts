@@ -53,6 +53,21 @@ export function loadConfig(forceReload = false): AppConfig {
   // 3. Deep merge overrides into defaults
   const merged = deepMerge(defaults, overrides);
 
+  // Bind process.env overrides dynamically for Redis settings
+  if (!merged.redis) {
+    merged.redis = {};
+  }
+  const mergedRedis = merged.redis as Record<string, unknown>;
+  if (process.env.REDIS_URL !== undefined) {
+    mergedRedis.url = process.env.REDIS_URL;
+  }
+  if (process.env.REDIS_TOKEN !== undefined) {
+    mergedRedis.token = process.env.REDIS_TOKEN;
+  }
+  if (process.env.REDIS_TCP_URL !== undefined) {
+    mergedRedis.tcpUrl = process.env.REDIS_TCP_URL;
+  }
+
   // 4. Validate schema with Zod
   const result = ConfigSchema.safeParse(merged);
   if (!result.success) {

@@ -37,10 +37,10 @@
  *   INTERNAL_API_KEY                   — shared secret bot uses for admin-only endpoints
  */
 
-import { Client, GatewayIntentBits, Events, Partials, type Interaction } from 'discord.js';
+import { Client, GatewayIntentBits, Events, Partials, type Interaction, EmbedBuilder } from 'discord.js';
 import { registerCommands } from './registerCommands.js';
 import { handleInteraction } from './events/interactionCreate.js';
-import { logger } from '../../utils/http/logger.js';
+import { logger, setDiscordChannelNotifier } from '../../utils/http/logger.js';
 
 let client: Client | null = null;
 
@@ -113,6 +113,40 @@ export async function startBot(): Promise<Client | null> {
     // We don't use message content for any prefix commands
     // (everything is slash), so leave the privileged intent off.
     partials: [Partials.Channel],
+  });
+
+  // Setup the logger redirection to discord notifications channel
+  setDiscordChannelNotifier(async (message, meta, category, level = 'alert') => {
+    if (!client) return;
+    const channelId = config.notificationChannelId;
+    if (!channelId) return;
+    try {
+      const channel = await client.channels.fetch(channelId);
+      if (channel && channel.isTextBased() && 'send' in channel) {
+        const colorMap: Record<string, number> = {
+          alert: 0xCC2222,
+          error: 0xE67E22,
+          warn:  0xF1C40F,
+          info:  0x3498DB,
+        };
+        const embed = new EmbedBuilder()
+          .setColor(colorMap[level] ?? 0xCC2222)
+          .setTitle(`[${level.toUpperCase()}] ${category ? `[${category}]` : ''}`)
+          .setDescription(message.slice(0, 2048))
+          .setTimestamp();
+
+        if (meta && Object.keys(meta).length > 0) {
+          const metaStr = JSON.stringify(meta, null, 2);
+          embed.addFields({
+            name: 'Metadata',
+            value: `\`\`\`json\n${metaStr.slice(0, 1000)}\n\`\`\``
+          });
+        }
+        await channel.send({ embeds: [embed] });
+      }
+    } catch (err) {
+      console.error('[bot] failed to send log to discord notifications channel:', err);
+    }
   });
 
   // Register the slash commands on the guild the bot is in.

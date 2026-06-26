@@ -305,6 +305,15 @@ export const ConfigSchema = z.object({
       discordIntegration: z.boolean().default(false),
     }),
   }),
+  redis: z.object({
+    url: z.string().default(''),
+    token: z.string().default(''),
+    tcpUrl: z.string().default(''),
+  }).default({
+    url: '',
+    token: '',
+    tcpUrl: '',
+  }),
 });
 
 export type AppConfig = z.infer<typeof ConfigSchema>;

@@ -16,6 +16,7 @@ import { resolveCommandData, executeResolve } from './commands/resolve.js';
 import { banCommandData, executeBan } from './commands/ban.js';
 import { broadcastCommandData, executeBroadcast } from './commands/broadcast.js';
 import { adminCommandData, executeAdmin } from './commands/admin.js';
+import { healthCommandData, executeHealth } from './commands/health.js';
 
 function buildCommandList(): RESTPostAPIChatInputApplicationCommandsJSONBody[] {
   return [
@@ -28,6 +29,7 @@ function buildCommandList(): RESTPostAPIChatInputApplicationCommandsJSONBody[] {
     banCommandData,
     broadcastCommandData,
     adminCommandData,
+    healthCommandData,
   ];
 }
 

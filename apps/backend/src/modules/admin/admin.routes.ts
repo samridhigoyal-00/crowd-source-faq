@@ -70,9 +70,9 @@ import adminProjectsRoutes from './admin-projects.routes.js';
 
 const router = Router();
 
-router.use('/projects', adminProjectsRoutes);
-
 router.use(adminOnly);
+
+router.use('/projects', adminProjectsRoutes);
 
 router.get('/stats', getStats);
 router.get('/faq-growth', getFaqGrowth);

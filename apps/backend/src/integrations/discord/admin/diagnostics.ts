@@ -9,6 +9,7 @@
 import mongoose from 'mongoose';
 import { setTimeout as delay } from 'node:timers/promises';
 import { adminLog } from '../../../utils/http/logger.js';
+import { loadConfig } from '../../../config/loader.js';
 
 export interface DiagnosticResult {
   name: string;
@@ -43,8 +44,9 @@ export async function checkMongo(): Promise<DiagnosticResult> {
 }
 
 export async function checkRedis(): Promise<DiagnosticResult> {
-  const url = process.env.REDIS_TCP_URL || process.env.REDIS_URL;
-  if (!url) {
+  const config = loadConfig();
+  const url = config.redis.tcpUrl || config.redis.url || process.env.REDIS_LOCAL_TCP_URL || process.env.REDIS_LOCAL_URL;
+  if (!url || url === '#' || url.trim() === '') {
     return { name: 'Redis', status: 'warn', detail: 'no REDIS_TCP_URL/REDIS_URL configured' };
   }
   // We don't import ioredis here to avoid a heavy dep at module load —

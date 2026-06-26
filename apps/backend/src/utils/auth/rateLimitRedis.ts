@@ -27,13 +27,15 @@ import IORedis from 'ioredis';
 import { RedisStore, type RedisReply } from 'rate-limit-redis';
 import type { Store } from 'express-rate-limit';
 import { logger } from '../http/logger.js';
+import { loadConfig } from '../../config/loader.js';
 
 let _client: IORedis | null = null;
 let _clientInitialized = false;
 let useLocalFallback = false;
 
 function buildLocalClient(): IORedis {
-  const localClient = new IORedis('redis://127.0.0.1:6379', {
+  const localUrl = process.env.REDIS_LOCAL_TCP_URL || process.env.REDIS_TCP_URL || 'redis://127.0.0.1:6379';
+  const localClient = new IORedis(localUrl, {
     maxRetriesPerRequest: 3,
     lazyConnect: true,
   });
@@ -44,7 +46,7 @@ function buildLocalClient(): IORedis {
 }
 
 function buildRedisClient(): IORedis | null {
-  const url = process.env.REDIS_TCP_URL;
+  const url = loadConfig().redis.tcpUrl;
   if (useLocalFallback || !url || url === '#' || url.trim() === '') {
     return buildLocalClient();
   }

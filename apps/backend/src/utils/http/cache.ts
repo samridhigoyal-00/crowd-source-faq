@@ -11,6 +11,7 @@
 import { Redis as UpstashRedis } from '@upstash/redis';
 import IORedis from 'ioredis';
 import { logger } from './logger.js';
+import { loadConfig } from '../../config/loader.js';
 
 // Unified Cache Client Interface
 interface CacheClient {
@@ -27,10 +28,11 @@ function getRedis(): CacheClient | null {
   if (redisClient) return redisClient;
 
   // 1. Try Upstash REST Client first if configured and fallback is not active
-  const upstashUrl = process.env.REDIS_URL;
-  const upstashToken = process.env.REDIS_TOKEN;
+  const config = loadConfig();
+  const upstashUrl = config.redis.url;
+  const upstashToken = config.redis.token;
   
-  if (!useLocalFallback && upstashUrl && upstashUrl !== '#' && upstashToken && upstashToken !== '#') {
+  if (!useLocalFallback && upstashUrl && upstashUrl.startsWith('http') && upstashToken && upstashToken !== '#') {
     try {
       const client = new UpstashRedis({
         url: upstashUrl,
@@ -84,7 +86,10 @@ function getRedis(): CacheClient | null {
 
 function getLocalRedisClient(): CacheClient | null {
   try {
-    const localUrl = 'redis://127.0.0.1:6379';
+    const rawUrl = process.env.REDIS_URL || '';
+    const localUrl = process.env.REDIS_LOCAL_URL || 
+      (!rawUrl.startsWith('http') ? rawUrl : '') || 
+      'redis://127.0.0.1:6379';
     const localIo = new IORedis(localUrl, {
       maxRetriesPerRequest: 3,
       lazyConnect: true,

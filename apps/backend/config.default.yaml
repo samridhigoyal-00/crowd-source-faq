@@ -312,3 +312,10 @@ featureFlags:
     publicFaqPage: true
     documentPipeline: false
     discordIntegration: false
+
+# ── Redis ──────────────────────────────────────────────────────────
+redis:
+  url: ""
+  token: ""
+  tcpUrl: ""
+
