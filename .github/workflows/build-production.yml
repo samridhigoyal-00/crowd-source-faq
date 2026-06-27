@@ -145,31 +145,12 @@ jobs:
                 break
               fi
               sleep 2
-              echo -n "."
             done
 
             if [ "$HEALTHY" -eq 0 ]; then
-              echo ""
-              echo "⚠️ Health check failed after 60s"
+              echo "❌ Health check failed after 60s"
+              exit 1
             fi
-
-            # Wait for startup tasks (cron, bookmarks, bot) to log
-            echo "⏳ Waiting 10s for startup tasks to settle..."
-            sleep 10
-
-            echo ""
-            echo "════════════════════════════════════════════════════════════════"
-            echo "  STARTUP LOGS (docker container)"
-            echo "════════════════════════════════════════════════════════════════"
-            echo ""
-            CONTAINER=$(docker compose -f docker-compose.yml -f docker-compose.prod.yml ps -q backend 2>/dev/null || true)
-            if [ -n "$CONTAINER" ]; then
-              docker logs --tail 200 "$CONTAINER" 2>&1 || true
-            else
-              echo "⚠️ Could not find backend container"
-            fi
-            echo ""
-            echo "════════════════════════════════════════════════════════════════"
 
             echo "✅ Production deployment complete!"
 
