@@ -7,9 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest",
-    "test:run": "vitest run",
-    "test:ui": "vitest --ui",
+    "test": "NODE_OPTIONS='--no-webstorage' vitest",
+    "test:run": "NODE_OPTIONS='--no-webstorage' vitest run",
+    "test:ui": "NODE_OPTIONS='--no-webstorage' vitest --ui",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
