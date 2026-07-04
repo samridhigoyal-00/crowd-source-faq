@@ -15,6 +15,7 @@ import { generateEmbedding } from '../../utils/ai/embeddings.js';
 import { MarkItDown } from 'markitdown-ts';
 import path from 'path';
 import os from 'os';
+import { publicAssetUrl, publicBasePath } from '../../utils/publicBasePath.js';
 
 /**
  * batchIdFromQuery — extract a valid program ObjectId from the request
@@ -177,7 +178,7 @@ export const uploadOrientation = async (req: Request, res: Response): Promise<vo
 
     // Using multer, the file will be in req.file
     if (req.file) {
-      videoUrl = `/uploads/orientations/${req.file.filename}`;
+      videoUrl = publicAssetUrl(`/uploads/orientations/${req.file.filename}`);
     }
 
     // Use provided transcript or fallback
@@ -213,9 +214,20 @@ export const deleteOrientation = async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    // Attempt to delete the file if it exists locally
-    if (orientation.videoUrl && orientation.videoUrl.startsWith('/uploads/')) {
-      const filePath = `.${orientation.videoUrl}`;
+    // Attempt to delete the file if it exists locally.
+    //
+    // v1.69 — publicBasePath: when the app is mounted under
+    // `/csfaq/`, the stored videoUrl is `/csfaq/uploads/...` rather
+    // than `/uploads/...`. Strip the configured public base path
+    // before checking the leading `/uploads/` marker so the cleanup
+    // path matches regardless of where the app is mounted.
+    const basePath = publicBasePath();
+    const basePrefix = basePath === '' ? '' : basePath;
+    const relativeUrl = basePrefix && orientation.videoUrl?.startsWith(basePrefix)
+      ? orientation.videoUrl.slice(basePrefix.length)
+      : orientation.videoUrl;
+    if (relativeUrl && relativeUrl.startsWith('/uploads/')) {
+      const filePath = `.${relativeUrl}`;
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
       }

@@ -31,8 +31,8 @@ function bumpAnonCount(): number {
 }
 
 interface Source { kind: 'knowledge'|'faq'|'community'; title: string; snippet: string; score: number; href: string; id: string; aboveThreshold?: boolean; }
-interface AskResponse { question: string; answer: string; sources: Source[]; relevantCount: number; sourceCount: number; model: string; aiFailed: boolean; }
-interface ChatMessage { id: string; role: 'user'|'assistant'; content: string; sources?: Source[]; loading?: boolean; error?: string; }
+interface AskResponse { question: string; answer: string; sources: Source[]; relevantCount: number; sourceCount: number; model: string; aiFailed: boolean; confidence?: number; }
+interface ChatMessage { id: string; role: 'user'|'assistant'; content: string; sources?: Source[]; loading?: boolean; error?: string; confidence?: number; }
 
 /** File/image attachment queued in the chat composer. */
 interface PendingAttachment {
@@ -107,6 +107,15 @@ function MessageBubble({ m, onNav }: { m: ChatMessage; onNav: (href: string) => 
     <div className="flex justify-start">
       <div className="max-w-[85%] space-y-2">
         <div className="px-3.5 py-2.5 rounded-2xl rounded-bl-md bg-card border border-border text-ink text-sm leading-relaxed whitespace-pre-wrap">{m.content}</div>
+        {m.confidence !== undefined && (
+          <div className="flex items-center pl-1">
+            {m.confidence >= 0.7 ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">High confidence ✅</span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200">Uncertain 🤔 — ask community</span>
+            )}
+          </div>
+        )}
         {m.sources && m.sources.length > 0 && (
           <div className="space-y-1 pl-1">
             <p className="text-[10px] uppercase tracking-wider text-ink-faint font-semibold pl-1">Sources ({m.sources.length})</p>
@@ -266,20 +275,27 @@ export default function AskAIButton() {
     // send — we keep local state empty after the call returns.
     const sending = attachments.slice();
     setAttachments([]);
+
+    const history = messages
+      .filter((m) => !m.loading && !m.error && m.content !== '(attachment)')
+      .slice(-6)
+      .map(({ role, content }) => ({ role, content }));
+
     try {
       let res;
       if (hasAttachments) {
         // Multipart upload — let the browser set the boundary + Content-Type.
         const fd = new FormData();
         fd.append('question', q);
+        fd.append('history', JSON.stringify(history));
         for (const a of sending) fd.append('files', a.file, a.filename);
         res = await api.post<AskResponse>('/ask-ai', fd, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
       } else {
-        res = await api.post<AskResponse>('/ask-ai', { question: q });
+        res = await api.post<AskResponse>('/ask-ai', { question: q, history });
       }
-      setMessages(m => m.map(msg => msg.id === aiMsg.id ? { ...msg, content: res.data.answer, sources: res.data.sources, loading: false } : msg));
+      setMessages(m => m.map(msg => msg.id === aiMsg.id ? { ...msg, content: res.data.answer, sources: res.data.sources, confidence: res.data.confidence, loading: false } : msg));
       if (!isAuthenticated) { const next = bumpAnonCount(); setAnonCount(next); if (next === ANON_AI_LIMIT) setTimeout(() => openModal('signin'), 1500); }
       // Release any preview URLs we held.
       sending.forEach((a) => { if (a.previewUrl) URL.revokeObjectURL(a.previewUrl); });

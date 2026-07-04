@@ -24,6 +24,7 @@ const ProgramPortalPage = lazy(() => import('../pages/ProgramPortalPage'));
 const ProgramPage = lazy(() => import('../pages/ProgramPage'));
 
 // Admin pages
+const AdminLogin = lazy(() => import('../admin/pages/AdminLogin'));
 const AdminDashboard = lazy(() => import('../admin/pages/AdminDashboard'));
 const AdminFAQs = lazy(() => import('../admin/pages/AdminFAQs'));
 const AdminUsers = lazy(() => import('../admin/pages/AdminUsers'));
@@ -142,7 +143,7 @@ export default function AppRoutes() {
 
           <Route
             path="/admin/login"
-            element={<Navigate to="/admin" replace />}
+            element={<AdminLogin />}
           />
           <Route path="/admin" element={<AdminRoute><AdminLayout><AdminDashboard /></AdminLayout></AdminRoute>} />
           <Route path="/admin/faqs" element={<AdminRoute><AdminLayout><AdminFAQs /></AdminLayout></AdminRoute>} />

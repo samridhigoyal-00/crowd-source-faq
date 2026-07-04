@@ -52,6 +52,16 @@ export const FEATURE_FLAGS = {
       'the button is hidden from the UI. Toggle on to re-enable the chatbot for users.',
     defaultEnabled: false,
   },
+  aiAutoAnswer: {
+    label: 'AI Auto-Answer Queue',
+    description: 'Enables the AI Auto-Answer review queue.',
+    defaultEnabled: true,
+  },
+  faqFreshness: {
+    label: 'FAQ Freshness Review',
+    description: 'Enables the FAQ freshness report and review system.',
+    defaultEnabled: true,
+  },
 } as const;
 
 export type FeatureFlagKey = keyof typeof FEATURE_FLAGS;

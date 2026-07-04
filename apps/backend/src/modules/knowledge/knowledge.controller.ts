@@ -149,7 +149,11 @@ export const askAIController = async (req: Request, res: Response): Promise<void
     //   body.query       — Discord /ask bot (and a few test clients) use this
     //   ?q= / ?query=    — URL fallback for browser address bar / curl / proxies
     // Body wins over URL when both are present.
-    const body = (req.body ?? {}) as { question?: string; query?: string };
+    const body = (req.body ?? {}) as {
+      question?: string;
+      query?:    string;
+      history?:  { role: "user" | "assistant"; content: string }[] | string;
+    };
     const fromBody = String(body.question ?? body.query ?? '').trim();
     const fromUrl = String(req.query.q ?? req.query.query ?? '').trim();
     const question = fromBody || fromUrl;
@@ -195,11 +199,22 @@ export const askAIController = async (req: Request, res: Response): Promise<void
     };
     const DEFAULT_THRESHOLD = 0.05;
 
+    let history: { role: "user" | "assistant"; content: string }[] = [];
+    if (Array.isArray(body.history)) {
+      history = body.history;
+    } else if (typeof body.history === 'string') {
+      try {
+        history = JSON.parse(body.history);
+      } catch {
+        /* ignore */
+      }
+    }
+
     const t0 = Date.now();
-    let result: { answer: string; sources: Array<{ id: string; type: string; title: string; snippet: string; url: string; score: number }>; model: string };
+    let result: { answer: string; sources: Array<{ id: string; type: string; title: string; snippet: string; url: string; score: number }>; model: string; confidence?: number };
     let aiFailed = false;
     try {
-      result = await runRag(question, attachments);
+      result = await runRag(question, attachments, history);
     } catch (ragErr) {
       // AI provider is down / rate-limited / unauthorized. The vector + text
       // searches inside runRag also failed because they're the same call.
@@ -268,6 +283,7 @@ export const askAIController = async (req: Request, res: Response): Promise<void
       relevantCount: ranked.length,
       sourceCount: sources.length,
       model: result.model,
+      confidence: result.confidence,
       aiFailed,
     });
   } catch (err) {

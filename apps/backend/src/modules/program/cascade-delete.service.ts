@@ -62,6 +62,17 @@ import Mentor from '../admin/mentor.model.js';
 import TimelineStep from '../admin/timeline-step.model.js';
 import Course from './course.model.js';
 import Orientation from './orientation.model.js';
+// v1.69 — Welcome Package Management: additive — the new
+// OnboardingResource + OnboardingKnowledgeSource + their chunks
+// live in dedicated collections. Cascade-delete picks them up too
+// so a program's resources + knowledge are wiped together with
+// everything else when the program is hard-deleted.
+import OnboardingResource from './onboarding-resource.model.js';
+import {
+  default as OnboardingKnowledgeSource,
+  OnboardingKnowledgeChunk,
+} from './onboarding-knowledge.model.js';
+import ResourceCompletion from './resource-completion.model.js';
 import { logger } from '../../utils/http/logger.js';
 
 export interface CascadeResult {
@@ -133,6 +144,14 @@ export async function cascadeDeleteProgram(batchId: string): Promise<CascadeResu
   await step('course', Course);
   await step('categoryCluster', CategoryCluster);
   await step('guestEvent', GuestEvent);
+
+  // v1.69 — Welcome Package Management: additive cascade coverage.
+  // Chunks first (FK to source), then sources, then resources,
+  // then completions — order matters for foreign-key style refs.
+  await step('onboardingKnowledgeChunk', OnboardingKnowledgeChunk);
+  await step('onboardingKnowledgeSource', OnboardingKnowledgeSource);
+  await step('onboardingResource', OnboardingResource);
+  await step('resourceCompletion', ResourceCompletion);
 
   // ── FAQs / categories (the only thing the previous code cascaded) ──
   await step('faq', FAQ);
