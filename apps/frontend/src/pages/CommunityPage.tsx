@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import Footer from '../components/layout/Footer';
 import UserActiveProgramIndicator from '../components/layout/UserActiveProgramIndicator';
 import CommunityPostCard from '../components/community/CommunityPostCard';
@@ -235,7 +235,7 @@ export default function CommunityPage() {
     fetchPosts(true);
   };
 
-  const visible = (() => {
+  const visible = useMemo(() => {
     if (search.trim()) return searchResults;
 
     return [...posts].sort((a, b) => {
@@ -245,14 +245,14 @@ export default function CommunityPage() {
       if (sort === 'discussed') return ((b.comments?.length ?? 0)) - ((a.comments?.length ?? 0));
       return 0;
     });
-  })();
+  }, [search, searchResults, posts, sort]);
 
-  const displayedPosts = filter === 'all'
+  const displayedPosts = useMemo(() => filter === 'all'
     ? visible
-    : visible.filter((p) => p.status === filter);
+    : visible.filter((p) => p.status === filter), [filter, visible]);
 
-  const answeredCount = posts.filter((p) => p.status === 'answered').length;
-  const unansweredCount = posts.filter((p) => p.status !== 'answered').length;
+  const answeredCount = useMemo(() => posts.filter((p) => p.status === 'answered').length, [posts]);
+  const unansweredCount = useMemo(() => posts.filter((p) => p.status !== 'answered').length, [posts]);
 
   return (
     <div className="min-h-screen bg-bg grid-bg relative">

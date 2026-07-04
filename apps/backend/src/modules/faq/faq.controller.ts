@@ -29,6 +29,17 @@ function batchIdFromQuery(req: { query: any }): string | null {
   return typeof raw === 'string' && Types.ObjectId.isValid(raw) ? raw : null;
 }
 
+// Decode base64 cursor to ObjectId
+function decodeCursor(cursor: string | undefined): mongoose.Types.ObjectId | null {
+  if (!cursor) return null;
+  try {
+    const decoded = Buffer.from(cursor, 'base64').toString('utf8');
+    return new mongoose.Types.ObjectId(decoded);
+  } catch {
+    return null;
+  }
+}
+
 async function logFreshEvent(
   event: FreshReviewEventType,
   faqId: Types.ObjectId | string,
@@ -93,15 +104,10 @@ export const getAllFAQs = async (req: Request<Record<string, never>, Record<stri
     const cursor = req.query.cursor;
 
     // Decode cursor to ObjectId for keyset pagination
-    let cursorId: mongoose.Types.ObjectId | null = null;
-    if (cursor) {
-      try {
-        const decoded = Buffer.from(cursor, 'base64').toString('utf8');
-        cursorId = new mongoose.Types.ObjectId(decoded);
-      } catch {
-        res.status(400).json({ message: 'Invalid cursor.' });
-        return;
-      }
+    const cursorId = decodeCursor(cursor);
+    if (cursor && !cursorId) {
+      res.status(400).json({ message: 'Invalid cursor.' });
+      return;
     }
 
     const query: Record<string, unknown> = {};
@@ -253,15 +259,10 @@ export const getPaginatedFAQs = async (req: Request<Record<string, never>, Recor
     const cursor = req.query.cursor;
 
     // Decode cursor to ObjectId for keyset pagination
-    let cursorId: mongoose.Types.ObjectId | null = null;
-    if (cursor) {
-      try {
-        const decoded = Buffer.from(cursor, 'base64').toString('utf8');
-        cursorId = new mongoose.Types.ObjectId(decoded);
-      } catch {
-        res.status(400).json({ message: 'Invalid cursor.' });
-        return;
-      }
+    const cursorId = decodeCursor(cursor);
+    if (cursor && !cursorId) {
+      res.status(400).json({ message: 'Invalid cursor.' });
+      return;
     }
 
     const query: Record<string, unknown> = {};
